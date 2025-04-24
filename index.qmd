@@ -1,0 +1,30 @@
+---
+title: "Shruthi Suresh"
+image: 'images/shruthi_Linkedin_Image.jpg'
+about:
+    template: jolla
+    links:
+    - icon: github
+      text: Github
+      href: https://github.com
+    - icon: envelope
+      href: mailto:s5suresh@ucsd.edu
+    - icon: linkedin
+      href: https://www.linkedin.com/in/shruthisuresh98/
+
+  
+---
+Shruthi Suresh is the Chief Data Scientist at Wengo Analytics. When not innovating on data platforms, Shruthi enjoys spending time unicycling and playing with her pet iguana.
+
+## Education
+University of California, San Diego | San Diego, CA
+MS Business Analytics | Aug 2024 - Dec 2025
+
+Amrita Vishwavidyapeetham | Tamil Nadu, India
+B.Tech in Electrical and Electronics Engineering | July 2016 - June 2020
+
+## Experience
+
+Wengo Analytics | Head Data Scientist | April 2018 - present
+
+GeoScynce | Chief Analyst | Spet 2012 - April 2018
