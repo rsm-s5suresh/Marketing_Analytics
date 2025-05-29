@@ -1,0 +1,474 @@
+---
+title: "Multinomial Logit Model"
+author: "Shruthi Suresh"
+date: today
+---
+
+
+This assignment expores two methods for estimating the MNL model: (1) via Maximum Likelihood, and (2) via a Bayesian approach using a Metropolis-Hastings MCMC algorithm. 
+
+
+## 1. Likelihood for the Multi-nomial Logit (MNL) Model
+
+Suppose we have $i=1,\ldots,n$ consumers who each select exactly one product $j$ from a set of $J$ products. The outcome variable is the identity of the product chosen $y_i \in \{1, \ldots, J\}$ or equivalently a vector of $J-1$ zeros and $1$ one, where the $1$ indicates the selected product. For example, if the third product was chosen out of 3 products, then either $y=3$ or $y=(0,0,1)$ depending on how we want to represent it. Suppose also that we have a vector of data on each product $x_j$ (eg, brand, price, etc.). 
+
+We model the consumer's decision as the selection of the product that provides the most utility, and we'll specify the utility function as a linear function of the product characteristics:
+
+$$ U_{ij} = x_j'\beta + \epsilon_{ij} $$
+
+where $\epsilon_{ij}$ is an i.i.d. extreme value error term. 
+
+The choice of the i.i.d. extreme value error term leads to a closed-form expression for the probability that consumer $i$ chooses product $j$:
+
+$$ \mathbb{P}_i(j) = \frac{e^{x_j'\beta}}{\sum_{k=1}^Je^{x_k'\beta}} $$
+
+For example, if there are 3 products, the probability that consumer $i$ chooses product 3 is:
+
+$$ \mathbb{P}_i(3) = \frac{e^{x_3'\beta}}{e^{x_1'\beta} + e^{x_2'\beta} + e^{x_3'\beta}} $$
+
+A clever way to write the individual likelihood function for consumer $i$ is the product of the $J$ probabilities, each raised to the power of an indicator variable ($\delta_{ij}$) that indicates the chosen product:
+
+$$ L_i(\beta) = \prod_{j=1}^J \mathbb{P}_i(j)^{\delta_{ij}} = \mathbb{P}_i(1)^{\delta_{i1}} \times \ldots \times \mathbb{P}_i(J)^{\delta_{iJ}}$$
+
+Notice that if the consumer selected product $j=3$, then $\delta_{i3}=1$ while $\delta_{i1}=\delta_{i2}=0$ and the likelihood is:
+
+$$ L_i(\beta) = \mathbb{P}_i(1)^0 \times \mathbb{P}_i(2)^0 \times \mathbb{P}_i(3)^1 = \mathbb{P}_i(3) = \frac{e^{x_3'\beta}}{\sum_{k=1}^3e^{x_k'\beta}} $$
+
+The joint likelihood (across all consumers) is the product of the $n$ individual likelihoods:
+
+$$ L_n(\beta) = \prod_{i=1}^n L_i(\beta) = \prod_{i=1}^n \prod_{j=1}^J \mathbb{P}_i(j)^{\delta_{ij}} $$
+
+And the joint log-likelihood function is:
+
+$$ \ell_n(\beta) = \sum_{i=1}^n \sum_{j=1}^J \delta_{ij} \log(\mathbb{P}_i(j)) $$
+
+
+
+## 2. Simulate Conjoint Data
+
+We will simulate data from a conjoint experiment about video content streaming services. We elect to simulate 100 respondents, each completing 10 choice tasks, where they choose from three alternatives per task. For simplicity, there is not a "no choice" option; each simulated respondent must select one of the 3 alternatives. 
+
+Each alternative is a hypothetical streaming offer consistent of three attributes: (1) brand is either Netflix, Amazon Prime, or Hulu; (2) ads can either be part of the experience, or it can be ad-free, and (3) price per month ranges from \$4 to \$32 in increments of \$4.
+
+The part-worths (ie, preference weights or beta parameters) for the attribute levels will be 1.0 for Netflix, 0.5 for Amazon Prime (with 0 for Hulu as the reference brand); -0.8 for included adverstisements (0 for ad-free); and -0.1*price so that utility to consumer $i$ for hypothethical streaming service $j$ is 
+
+$$
+u_{ij} = (1 \times Netflix_j) + (0.5 \times Prime_j) + (-0.8*Ads_j) - 0.1\times Price_j + \varepsilon_{ij}
+$$
+
+where the variables are binary indicators and $\varepsilon$ is Type 1 Extreme Value (ie, Gumble) distributed.
+
+The following code provides the simulation of the conjoint data.
+
+:::: {.callout-note collapse="true"}
+```{python}
+import numpy as np
+import pandas as pd
+from itertools import product
+
+# Set seed for reproducibility
+np.random.seed(123)
+
+# Define attributes
+brands = ['N', 'P', 'H']  # Netflix, Prime, Hulu
+ads = ['Yes', 'No']
+prices = np.arange(8, 33, 4)  # 8 to 32, step 4
+
+# Generate all possible profiles
+profiles = pd.DataFrame(list(product(brands, ads, prices)), columns=["brand", "ad", "price"])
+m = len(profiles)
+
+# Define part-worth utilities (true coefficients)
+b_util = {"N": 1.0, "P": 0.5, "H": 0.0}
+a_util = {"Yes": -0.8, "No": 0.0}
+p_util = lambda p: -0.1 * p
+
+# Simulation parameters
+n_peeps = 100
+n_tasks = 10
+n_alts = 3
+
+# Simulate one respondent’s data
+def sim_one(id):
+    datalist = []
+    for t in range(1, n_tasks + 1):
+        sampled = profiles.sample(n=n_alts).copy()
+        sampled["resp"] = id
+        sampled["task"] = t
+        sampled["v"] = sampled.apply(
+            lambda row: b_util[row["brand"]] + a_util[row["ad"]] + p_util(row["price"]),
+            axis=1
+        )
+        sampled["e"] = -np.log(-np.log(np.random.rand(n_alts)))  # Gumbel noise
+        sampled["u"] = sampled["v"] + sampled["e"]
+        sampled["choice"] = (sampled["u"] == sampled["u"].max()).astype(int)
+        datalist.append(sampled)
+    return pd.concat(datalist, ignore_index=True)
+
+# Simulate data for all respondents
+conjoint_data = pd.concat([sim_one(i) for i in range(1, n_peeps + 1)], ignore_index=True)
+
+# Keep only observable columns
+conjoint_data = conjoint_data[["resp", "task", "brand", "ad", "price", "choice"]]
+
+# View sample
+conjoint_data.head()
+```
+::::
+
+
+
+## 3. Preparing the Data for Estimation
+
+The "hard part" of the MNL likelihood function is organizing the data, as we need to keep track of 3 dimensions (consumer $i$, covariate $k$, and product $j$) instead of the typical 2 dimensions for cross-sectional regression models (consumer $i$ and covariate $k$). The fact that each task for each respondent has the same number of alternatives (3) helps.  In addition, we need to convert the categorical variables for brand and ads into binary variables.
+
+```{python}
+import numpy as np
+import pandas as pd
+
+# Load the dataset
+conjoint_data = pd.read_csv("conjoint_data.csv")
+print("Columns in dataset:", conjoint_data.columns.tolist())  # Confirm 'resp' and 'task' are present
+
+# Step 1: One-hot encode categorical variables (drop first level to avoid multicollinearity)
+X_df = pd.get_dummies(conjoint_data[["brand", "ad"]], drop_first=True)
+
+# Step 2: Add numeric price
+X_df["price"] = conjoint_data["price"]
+
+# Step 3: Add the binary response variable
+X_df["choice"] = conjoint_data["choice"]
+
+# Step 4: Create design matrix and target
+X = X_df.drop(columns=["choice"])
+y = X_df["choice"]
+
+# Optional: Combine everything for easy preview
+# Convert X and y back to DataFrame with correct column names
+Xy_df = pd.concat([X.reset_index(drop=True), y.reset_index(drop=True)], axis=1)
+
+# Add respondent and task info
+conjoint_ready = pd.concat(
+    [conjoint_data[["resp", "task"]].reset_index(drop=True), Xy_df],
+    axis=1
+)
+
+# Step 5: Display the final prepared DataFrame
+print(conjoint_ready.head())
+
+
+```
+
+
+
+## 4. Estimation via Maximum Likelihood
+
+```{python}
+# -------------------------------------------
+# Step 0: Imports (run this after restarting kernel)
+# -------------------------------------------
+import numpy as np
+import pandas as pd
+from scipy.optimize import minimize
+from scipy.stats import norm
+
+# -------------------------------------------
+# Step 1: Extract Design Matrix X and Target y
+# -------------------------------------------
+# Assumes you already have `conjoint_ready` from previous steps
+X = conjoint_ready[["brand_N", "brand_P", "ad_Yes", "price"]].values
+y = conjoint_ready["choice"].values
+alt_per_task = 3  # 3 alternatives per choice task
+
+# Convert to float64 to ensure proper numerical operations
+X = X.astype(np.float64)
+y = y.astype(np.int32)
+
+print(f"X shape: {X.shape}")
+print(f"y shape: {y.shape}")
+print(f"X dtype: {X.dtype}")
+print(f"y dtype: {y.dtype}")
+
+# -------------------------------------------
+# Step 2: Define Log-Likelihood Function
+# -------------------------------------------
+def mnl_log_likelihood(beta, X, y, alt_per_task=3):
+    """
+    Compute the negative log-likelihood of the multinomial logit model.
+    """
+    try:
+        n_obs = X.shape[0]
+        n_tasks = n_obs // alt_per_task
+        
+        # Ensure beta is float64
+        beta = np.array(beta, dtype=np.float64)
+        
+        # Calculate utilities
+        X_beta = np.dot(X, beta)
+        X_beta = X_beta.reshape((n_tasks, alt_per_task))
+        y_reshaped = y.reshape((n_tasks, alt_per_task))
+        
+        # Softmax with numerical stability
+        max_Xb = np.max(X_beta, axis=1, keepdims=True)
+        exp_terms = np.exp(X_beta - max_Xb)
+        log_sum_exp = np.log(np.sum(exp_terms, axis=1, keepdims=True))
+        log_probs = X_beta - max_Xb - log_sum_exp
+        
+        # Calculate negative log-likelihood
+        chosen_log_probs = log_probs[y_reshaped == 1]
+        neg_log_likelihood = -np.sum(chosen_log_probs)
+        
+        # Check for invalid values
+        if not np.isfinite(neg_log_likelihood):
+            return 1e10  # Return large value if optimization goes wrong
+            
+        return neg_log_likelihood
+        
+    except Exception as e:
+        print(f"Error in log-likelihood function: {e}")
+        return 1e10
+
+# -------------------------------------------
+# Step 3: Test the function first
+# -------------------------------------------
+initial_beta = np.zeros(X.shape[1], dtype=np.float64)
+print(f"Initial beta: {initial_beta}")
+
+# Test the log-likelihood function
+test_ll = mnl_log_likelihood(initial_beta, X, y, alt_per_task)
+print(f"Initial log-likelihood: {test_ll}")
+
+# -------------------------------------------
+# Step 4: Estimate Using scipy.optimize.minimize
+# -------------------------------------------
+print("Starting optimization...")
+result = minimize(
+    mnl_log_likelihood, 
+    initial_beta, 
+    args=(X, y, alt_per_task), 
+    method='BFGS',
+    options={'disp': True, 'maxiter': 1000}
+)
+
+print(f"Optimization successful: {result.success}")
+print(f"Message: {result.message}")
+
+# -------------------------------------------
+# Step 5: Extract Results and Standard Errors
+# -------------------------------------------
+if result.success:
+    beta_hat = result.x
+    
+    # Check if hessian inverse is available
+    if hasattr(result, 'hess_inv') and result.hess_inv is not None:
+        if isinstance(result.hess_inv, np.ndarray):
+            hessian_inv = result.hess_inv
+        else:
+            # Sometimes hess_inv is a LinearOperator, convert to array
+            hessian_inv = result.hess_inv.todense() if hasattr(result.hess_inv, 'todense') else np.array(result.hess_inv)
+        
+        std_errors = np.sqrt(np.diag(hessian_inv))
+        
+        # -------------------------------------------
+        # Step 6: Confidence Intervals (95%)
+        # -------------------------------------------
+        z = norm.ppf(0.975)
+        ci_lower = beta_hat - z * std_errors
+        ci_upper = beta_hat + z * std_errors
+        
+        # -------------------------------------------
+        # Step 7: Tabulate Results
+        # -------------------------------------------
+        param_names = ["beta_netflix", "beta_prime", "beta_ads", "beta_price"]
+        mle_results = pd.DataFrame({
+            "Parameter": param_names,
+            "Estimate": beta_hat,
+            "Std_Error": std_errors,
+            "95% CI Lower": ci_lower,
+            "95% CI Upper": ci_upper
+        })
+
+        # Save MLE results to CSV
+        mle_results.to_csv("mle_results.csv", index=False)
+
+        
+        print("\n" + "="*50)
+        print("MAXIMUM LIKELIHOOD ESTIMATION RESULTS")
+        print("="*50)
+        print(mle_results.round(4))
+        
+    else:
+        print("Warning: Hessian inverse not available. Results without standard errors:")
+        param_names = ["beta_netflix", "beta_prime", "beta_ads", "beta_price"]
+        basic_results = pd.DataFrame({
+            "Parameter": param_names,
+            "Estimate": beta_hat
+        })
+        print(basic_results.round(4))
+        
+else:
+    print("Optimization failed!")
+    print(f"Message: {result.message}")
+
+
+```
+
+
+
+## 5. Estimation via Bayesian Methods
+
+```{python}
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+
+# -------------------------------------------
+# Step 1: Define log-prior function
+# -------------------------------------------
+def log_prior(beta):
+    # Priors: N(0, 5^2) for binary variables, N(0, 1^2) for price
+    binary_priors = -0.5 * (beta[:3] / 5)**2 - 3 * np.log(5 * np.sqrt(2 * np.pi))
+    price_prior = -0.5 * (beta[3] / 1)**2 - np.log(np.sqrt(2 * np.pi))
+    return binary_priors.sum() + price_prior
+
+# -------------------------------------------
+# Step 2: Define log-posterior (log-likelihood + log-prior)
+# -------------------------------------------
+def log_posterior(beta, X, y, alt_per_task):
+    loglik = -mnl_log_likelihood(beta, X, y, alt_per_task)  # log-likelihood is negative
+    logpri = log_prior(beta)
+    return loglik + logpri
+
+
+# -------------------------------------------
+# Step 3: Metropolis-Hastings Sampler
+# -------------------------------------------
+n_iter = 11000
+burn_in = 1000
+n_params = X.shape[1]
+
+samples = np.zeros((n_iter, n_params))
+current_beta = np.zeros(n_params)
+current_logpost = log_posterior(current_beta, X, y, alt_per_task)
+
+# Proposal SDs: binary params N(0, 0.05), price param N(0, 0.005)
+proposal_sds = np.array([0.05, 0.05, 0.05, 0.005])
+
+accept_count = 0
+
+np.random.seed(42)
+
+for i in range(n_iter):
+    proposal = current_beta + np.random.normal(0, proposal_sds)
+    proposal_logpost = log_posterior(proposal, X, y, alt_per_task)
+
+    log_accept_ratio = proposal_logpost - current_logpost
+
+    if np.log(np.random.rand()) < log_accept_ratio:
+        current_beta = proposal
+        current_logpost = proposal_logpost
+        accept_count += 1
+
+    samples[i, :] = current_beta
+
+accept_rate = accept_count / n_iter
+print(f"Acceptance rate: {accept_rate:.3f}")
+
+# -------------------------------------------
+# Step 4: Posterior Summary (after burn-in)
+# -------------------------------------------
+posterior_samples = samples[burn_in:, :]
+param_names = ["beta_netflix", "beta_prime", "beta_ads", "beta_price"]
+
+posterior_df = pd.DataFrame(posterior_samples, columns=param_names)
+
+posterior_summary = posterior_df.describe(percentiles=[0.025, 0.975]).T
+posterior_summary = posterior_summary[["mean", "std", "2.5%", "97.5%"]]
+posterior_summary.columns = ["Mean", "Std_Dev", "95% CI Lower", "95% CI Upper"]
+
+print("\n" + "="*50)
+print("BAYESIAN POSTERIOR SUMMARY")
+print("="*50)
+print(posterior_summary.round(4))
+
+import seaborn as sns
+
+plt.figure(figsize=(12, 5))
+
+# Trace plot
+plt.subplot(1, 2, 1)
+plt.plot(posterior_df["beta_price"])
+plt.title("Trace Plot: beta_price")
+plt.xlabel("Iteration")
+plt.ylabel("Value")
+
+# Histogram
+plt.subplot(1, 2, 2)
+sns.histplot(posterior_df["beta_price"], bins=30, kde=True)
+plt.title("Posterior Distribution: beta_price")
+plt.xlabel("Value")
+
+plt.tight_layout()
+plt.show()
+
+
+
+import pandas as pd
+import os
+
+# -------------------------------------------
+# Debug the CSV loading issue
+# -------------------------------------------
+
+#file_path = "C:\\Users\\Shruthi Suresh\\shruthis_website\\Projects\\Homework3\\mle_results.csv"
+
+#mle_results = pd.read_csv(file_path)
+#print("Comparison: MLE vs Bayesian Estimates")
+#combined = mle_results.set_index("Parameter").join(posterior_summary, on="Parameter")
+#print(combined.round(4))
+```
+
+## 6. Discussion
+
+
+### Interpreting Parameter Estimates:
+
+If we had not simulated the data and were working with real-world conjoint responses, we would interpret the estimated parameters as revealed preferences derived from observed consumer choices. The fact that the model provides statistically significant estimates (with narrow confidence or credible intervals) suggests that the attributes included—brand, presence of ads, and price—are meaningful drivers of choice behavior.
+
+- **$\beta_\text{Netflix} > \beta_\text{Prime}$**: This result implies that, on average, consumers prefer **Netflix** over **Amazon Prime**, all else being equal. Since **Hulu** is the reference category (omitted in the dummy encoding), this also suggests that **Netflix** is the most preferred brand among the three, followed by **Prime**, then **Hulu**.
+
+- **$\beta_\text{price} < 0$**: A negative coefficient on price is not only intuitive but essential for model validity. It indicates that, all else being equal, higher-priced options are **less likely** to be chosen. The magnitude tells us how **sensitive** consumers are to price changes.
+
+---
+
+### Simulating and Estimating a Multi-Level (Hierarchical) Model
+
+To move from a simple fixed-effects model to a **multi-level** (random-parameter or hierarchical) model, the key change is to allow **individual-level variation** in preferences. This means we no longer assume a single set of $\beta$ coefficients for the entire population, but instead allow each respondent to have their own set of $\beta_i$ values drawn from a population distribution.
+
+#### Key changes to simulate hierarchical data:
+
+- Instead of applying one common set of part-worth utilities, draw  
+  $\beta_i \sim \mathcal{N}(\mu, \Sigma)$  
+  for each respondent $i$.
+
+- These $\beta_i$ vectors are then used to compute utilities and simulate choices, allowing heterogeneity in behavior.
+
+#### Key changes for estimation:
+
+- Use **Bayesian hierarchical modeling** (e.g., via MCMC with group-level priors), or **Mixed Logit** models with simulated maximum likelihood.
+- Estimate the **distribution of preferences** (e.g., mean and covariance of $\beta$ across individuals) instead of just point estimates.
+- Tools like **Stan**, **PyMC**, or hierarchical models in **scikit-learn** or **statsmodels** can be used.
+
+This hierarchical approach better captures the reality that not all consumers behave the same and allows us to tailor predictions or develop segment-specific strategies accordingly.
+
+
+
+
+
+
+
+
+
+
+
+
