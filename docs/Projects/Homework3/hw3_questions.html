@@ -194,7 +194,7 @@ window.Quarto = {
   <li><a href="#estimation-via-bayesian-methods" id="toc-estimation-via-bayesian-methods" class="nav-link" data-scroll-target="#estimation-via-bayesian-methods">5. Estimation via Bayesian Methods</a></li>
   <li><a href="#discussion" id="toc-discussion" class="nav-link" data-scroll-target="#discussion">6. Discussion</a>
   <ul class="collapse">
-  <li><a href="#interpreting-parameter-estimates" id="toc-interpreting-parameter-estimates" class="nav-link" data-scroll-target="#interpreting-parameter-estimates">Interpreting Parameter Estimates:</a></li>
+  <li><a href="#interpreting-parameter-estimates" id="toc-interpreting-parameter-estimates" class="nav-link" data-scroll-target="#interpreting-parameter-estimates">Interpreting Parameter Estimates :</a></li>
   <li><a href="#simulating-and-estimating-a-multi-level-hierarchical-model" id="toc-simulating-and-estimating-a-multi-level-hierarchical-model" class="nav-link" data-scroll-target="#simulating-and-estimating-a-multi-level-hierarchical-model">Simulating and Estimating a Multi-Level (Hierarchical) Model</a></li>
   </ul></li>
   </ul>
@@ -276,7 +276,7 @@ Note
 </div>
 <div id="callout-1" class="callout-1-contents callout-collapse collapse">
 <div class="callout-body-container callout-body">
-<div id="13d1031c" class="cell" data-execution_count="1">
+<div id="df3198d6" class="cell" data-execution_count="1">
 <div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> itertools <span class="im">import</span> product</span>
@@ -403,7 +403,7 @@ Note
 <section id="preparing-the-data-for-estimation" class="level2">
 <h2 class="anchored" data-anchor-id="preparing-the-data-for-estimation">3. Preparing the Data for Estimation</h2>
 <p>The “hard part” of the MNL likelihood function is organizing the data, as we need to keep track of 3 dimensions (consumer <span class="math inline">\(i\)</span>, covariate <span class="math inline">\(k\)</span>, and product <span class="math inline">\(j\)</span>) instead of the typical 2 dimensions for cross-sectional regression models (consumer <span class="math inline">\(i\)</span> and covariate <span class="math inline">\(k\)</span>). The fact that each task for each respondent has the same number of alternatives (3) helps. In addition, we need to convert the categorical variables for brand and ads into binary variables.</p>
-<div id="e832ece9" class="cell" data-execution_count="2">
+<div id="acae75d1" class="cell" data-execution_count="2">
 <div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -449,7 +449,7 @@ Note
 </section>
 <section id="estimation-via-maximum-likelihood" class="level2">
 <h2 class="anchored" data-anchor-id="estimation-via-maximum-likelihood">4. Estimation via Maximum Likelihood</h2>
-<div id="64481e5a" class="cell" data-execution_count="3">
+<div id="e7fd2d2f" class="cell" data-execution_count="3">
 <div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co"># -------------------------------------------</span></span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="co"># Step 0: Imports (run this after restarting kernel)</span></span>
 <span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="co"># -------------------------------------------</span></span>
@@ -624,7 +624,7 @@ MAXIMUM LIKELIHOOD ESTIMATION RESULTS
 </section>
 <section id="estimation-via-bayesian-methods" class="level2">
 <h2 class="anchored" data-anchor-id="estimation-via-bayesian-methods">5. Estimation via Bayesian Methods</h2>
-<div id="3a9c1e2a" class="cell" data-execution_count="4">
+<div id="eaf6671b" class="cell" data-execution_count="4">
 <div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
 <span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
 <span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
@@ -757,7 +757,7 @@ beta_price   -0.0998   0.0063       -0.1119       -0.0873</code></pre>
 <section id="discussion" class="level2">
 <h2 class="anchored" data-anchor-id="discussion">6. Discussion</h2>
 <section id="interpreting-parameter-estimates" class="level3">
-<h3 class="anchored" data-anchor-id="interpreting-parameter-estimates">Interpreting Parameter Estimates:</h3>
+<h3 class="anchored" data-anchor-id="interpreting-parameter-estimates">Interpreting Parameter Estimates :</h3>
 <p>If we had not simulated the data and were working with real-world conjoint responses, we would interpret the estimated parameters as revealed preferences derived from observed consumer choices. The fact that the model provides statistically significant estimates (with narrow confidence or credible intervals) suggests that the attributes included—brand, presence of ads, and price—are meaningful drivers of choice behavior.</p>
 <ul>
 <li><p><strong><span class="math inline">\(\beta_\text{Netflix} &gt; \beta_\text{Prime}\)</span></strong>: This result implies that, on average, consumers prefer <strong>Netflix</strong> over <strong>Amazon Prime</strong>, all else being equal. Since <strong>Hulu</strong> is the reference category (omitted in the dummy encoding), this also suggests that <strong>Netflix</strong> is the most preferred brand among the three, followed by <strong>Prime</strong>, then <strong>Hulu</strong>.</p></li>

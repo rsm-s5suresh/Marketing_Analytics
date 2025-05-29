@@ -431,7 +431,7 @@ import os
 ## 6. Discussion
 
 
-### Interpreting Parameter Estimates:
+### Interpreting Parameter Estimates :
 
 If we had not simulated the data and were working with real-world conjoint responses, we would interpret the estimated parameters as revealed preferences derived from observed consumer choices. The fact that the model provides statistically significant estimates (with narrow confidence or credible intervals) suggests that the attributes included—brand, presence of ads, and price—are meaningful drivers of choice behavior.
 
